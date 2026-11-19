@@ -1,0 +1,23 @@
+{
+  "name": "mic-gain",
+  "version": "0.1.0",
+  "description": "Sharkord plugin that boosts your own microphone before it is sent.",
+  "module": "src/server/index.ts",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "build": "bun build.ts",
+    "check-types": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19"
+  },
+  "peerDependencies": {
+    "react": "^19",
+    "typescript": "^5"
+  }
+}
