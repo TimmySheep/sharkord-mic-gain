@@ -15,7 +15,7 @@ Object.defineProperty(globalThis, "window", {
   value: { addEventListener: () => undefined },
 });
 
-const { parseSettings, shouldApplyGain, clampGain } = await import("../settings");
+const { parseSettings, shouldProcess, clampGain } = await import("../settings");
 
 describe("settings", () => {
   test("defaults to off, so installing the plugin changes nothing", () => {
@@ -23,7 +23,7 @@ describe("settings", () => {
 
     expect(settings.enabled).toBe(false);
     expect(settings.gain).toBe(100);
-    expect(shouldApplyGain(settings)).toBe(false);
+    expect(shouldProcess(settings)).toBe(false);
   });
 
   test("a record written by an older version keeps its known fields", () => {
@@ -47,9 +47,9 @@ describe("settings", () => {
     expect(clampGain(147.6)).toBe(148);
   });
 
-  test("100% counts as no processing at all", () => {
-    expect(shouldApplyGain({ enabled: true, gain: 100 })).toBe(false);
-    expect(shouldApplyGain({ enabled: true, gain: 150 })).toBe(true);
-    expect(shouldApplyGain({ enabled: false, gain: 150 })).toBe(false);
+  test("the graph is built whenever the plugin is on, 100% included", () => {
+    expect(shouldProcess({ enabled: true, gain: 100 })).toBe(true);
+    expect(shouldProcess({ enabled: true, gain: 150 })).toBe(true);
+    expect(shouldProcess({ enabled: false, gain: 150 })).toBe(false);
   });
 });

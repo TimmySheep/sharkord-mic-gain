@@ -1,6 +1,6 @@
 {
   "name": "mic-gain",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Sharkord plugin that boosts your own microphone before it is sent.",
   "module": "src/server/index.ts",
   "type": "module",

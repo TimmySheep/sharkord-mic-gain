@@ -13,6 +13,15 @@ A boosted microphone is worth nothing if the other side cannot hear it, so this 
 - **The state is visible.** Settings → MicGain says whether the boost is applied, skipped, or fell back, and why.
 - **A context that stops running later is reported**, not silently ignored. The track already handed to the call cannot be repaired from here, so the next capture is sent unboosted.
 
+## When it takes effect
+
+The gain is attached when the microphone is captured, so:
+
+- **Turning the plugin on while already in a voice channel** needs one rejoin: there is no capture to attach to. The settings page says so instead of pretending it worked.
+- **Moving the slider afterwards applies immediately**, to the call in progress, because the plugin keeps the gain node it built and updates it. Turning the boost off returns it to 1.0 rather than cutting the microphone.
+
+With the plugin on, the microphone goes through a gain node even at 100%. At 100% that node is unity, so what is sent is what was captured.
+
 This is a real limit, not a disclaimer: the plugin cannot prove that audio reaches your listeners, only that the graph it built is running. Verify once with Settings → Devices → microphone test before relying on it in a call.
 
 ## Where it sits

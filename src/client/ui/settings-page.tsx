@@ -9,7 +9,10 @@ const section = { display: "grid", gap: 12, maxWidth: 480 } as const;
 const STATUS_TEXT: Record<string, string> = {
   idle: "Not applied yet. Join a voice channel to see it work.",
   applied: "Boosting your microphone.",
-  skipped: "At 100%, so your microphone is sent as captured.",
+  unity: "On, but at 100%, so your microphone is sent as captured.",
+  skipped: "Off, so your microphone is sent as captured.",
+  "awaiting-recapture":
+    "Turned on while already in a call. Leave and rejoin the voice channel once to apply it; after that, moving the slider applies immediately.",
   "not-running":
     "The audio context did not start, so your microphone was sent unboosted. Nothing is broken: you were still heard.",
   interrupted:

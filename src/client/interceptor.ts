@@ -1,5 +1,5 @@
-import { RESUME_TIMEOUT_MS } from "./constants";
-import { getSettings, shouldApplyGain } from "./settings";
+import { MIN_GAIN, RESUME_TIMEOUT_MS } from "./constants";
+import { getSettings, shouldProcess, subscribeSettings } from "./settings";
 
 /**
  * Wraps `navigator.mediaDevices.getUserMedia` so the microphone can be boosted
@@ -13,7 +13,9 @@ import { getSettings, shouldApplyGain } from "./settings";
 type TStatusReason =
   | "idle"
   | "applied"
+  | "unity"
   | "skipped"
+  | "awaiting-recapture"
   | "not-running"
   | "interrupted"
   | "no-track"
@@ -81,7 +83,15 @@ const resumeWithin = async (
 type TGainChain = {
   stream: MediaStream;
   context: AudioContext;
+  gain: GainNode;
 };
+
+/**
+ * The chain currently feeding the call, so slider moves apply without a
+ * rejoin. Only a capture that happened while the plugin was disabled has no
+ * chain to update, and that needs the microphone to be captured again.
+ */
+let activeChain: TGainChain | undefined;
 
 /**
  * Builds the graph and hands back the processed stream, or `undefined` when
@@ -128,9 +138,9 @@ const buildGainChain = async (
       { once: true },
     );
 
-    setStatus("applied", gainPercent);
+    setStatus(gainPercent > MIN_GAIN ? "applied" : "unity", gainPercent);
 
-    return { stream: new MediaStream([processed]), context };
+    return { stream: new MediaStream([processed]), context, gain };
   } catch (error) {
     if (context) void context.close().catch(() => undefined);
 
@@ -138,6 +148,32 @@ const buildGainChain = async (
 
     return undefined;
   }
+};
+
+/** pushes the current settings into the live chain, without re-capturing */
+const syncActiveChain = () => {
+  if (!activeChain) {
+    // enabled while already in a call: nothing to adjust until the mic is
+    // captured again, so say so instead of pretending it applied
+    const settings = getSettings();
+
+    if (settings.enabled) setStatus("awaiting-recapture", settings.gain);
+
+    return;
+  }
+
+  const settings = getSettings();
+  const target = settings.enabled && settings.gain > MIN_GAIN ? settings.gain : MIN_GAIN;
+
+  if (activeChain.context.state !== "running") return;
+
+  activeChain.gain.gain.setTargetAtTime(
+    target / 100,
+    activeChain.context.currentTime,
+    0.015,
+  );
+
+  setStatus(target > MIN_GAIN ? "applied" : "unity", target);
 };
 
 /**
@@ -164,6 +200,7 @@ const watchContext = (context: AudioContext, gainPercent: number) => {
 
 let installed = false;
 let original: typeof navigator.mediaDevices.getUserMedia | undefined;
+let unsubscribeSettings: (() => void) | undefined;
 
 const install = () => {
   if (installed) return;
@@ -184,7 +221,9 @@ const install = () => {
 
     const settings = getSettings();
 
-    if (!shouldApplyGain(settings)) {
+    // the graph is built whenever the plugin is on, even at 100%, so moving the
+    // slider later applies to the call in progress instead of needing a rejoin
+    if (!shouldProcess(settings)) {
       setStatus("skipped", settings.gain);
       return raw;
     }
@@ -193,19 +232,25 @@ const install = () => {
 
     if (!chain) return raw;
 
+    activeChain = chain;
     watchContext(chain.context, settings.gain);
 
     return chain.stream;
   };
 
+  unsubscribeSettings = subscribeSettings(syncActiveChain);
   installed = true;
 };
 
 const uninstall = () => {
   if (!installed || !original) return;
 
+  unsubscribeSettings?.();
+  unsubscribeSettings = undefined;
+
   navigator.mediaDevices.getUserMedia = original;
   original = undefined;
+  activeChain = undefined;
   installed = false;
   setStatus("idle", 100);
 };
@@ -215,6 +260,7 @@ export {
   getStatus,
   install,
   resumeWithin,
+  syncActiveChain,
   subscribeStatus,
   uninstall,
   wantsAudio,

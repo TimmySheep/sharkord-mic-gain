@@ -5,5 +5,5 @@
   "description": "Boosts your own microphone before it is sent, for microphones that sound quiet to everyone else.",
   "homepage": "https://github.com/TimmySheep/sharkord-mic-gain",
   "sdkVersion": 2,
-  "version": "0.1.0"
+  "version": "0.1.1"
 }

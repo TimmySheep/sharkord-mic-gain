@@ -41,9 +41,12 @@ const parseSettings = (raw: string | null): TSettings => {
   }
 };
 
-/** true only when the microphone should actually be routed through the graph */
-const shouldApplyGain = (settings: TSettings) =>
-  settings.enabled && settings.gain > MIN_GAIN;
+/**
+ * True when the microphone should be routed through the graph at all. The
+ * graph is built even at 100% so a later slider move applies to the call in
+ * progress; at 100% it is a unity gain and changes nothing.
+ */
+const shouldProcess = (settings: TSettings) => settings.enabled;
 
 let state: TSettings = parseSettings(localStorage.getItem(STORAGE_KEY));
 const listeners = new Set<() => void>();
@@ -88,7 +91,7 @@ export {
   parseSettings,
   setEnabled,
   setGain,
-  shouldApplyGain,
+  shouldProcess,
   subscribeSettings,
 };
 export type { TSettings };
